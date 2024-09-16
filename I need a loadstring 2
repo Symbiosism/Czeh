@@ -1,0 +1,766 @@
+--[[
+    info script
+    by MyWorld (remember me)
+    discord.gg/pYVHtSJmEY
+]]
+
+local twait, tspawn, tdelay = task.wait, task.spawn, task.delay
+local g = game
+while not g:IsLoaded() do twait() end
+local plrs = g:GetService("Players")
+local lp = plrs.LocalPlayer
+local mouse = lp:GetMouse()
+local ws = g:GetService("Workspace")
+local cg = g:GetService("CoreGui")
+local pg = lp:FindFirstChildOfClass("PlayerGui")
+local rs = g:GetService("RunService")
+local uis = g:GetService("UserInputService")
+local stepped = rs.Stepped
+local renderstepped = rs.RenderStepped
+local heartbeat = rs.Heartbeat
+local currentplayer = lp
+local fenv = getfenv()
+local shp = fenv.sethiddenproperty or fenv.set_hidden_property or fenv.sethiddenprop or fenv.set_hidden_prop
+local v3 = Vector3.new
+local v3_0 = v3(0, 0, 0)
+local v3_101 = v3(1, 0, 1)
+local cf = CFrame.new
+local flycf = false
+local schar, mrandom, mclamp = string.char, math.random, math.clamp
+local tfind, tinsert, tremove = table.find, table.insert, table.remove
+local tick = os.clock
+local instancenew = Instance.new
+
+local function gp(parent, name, className)
+    if typeof(parent) == "Instance" then
+		for _, v in pairs(parent:GetChildren()) do
+			if (v.Name == name) and v:IsA(className) then
+				return v
+			end
+		end
+	end
+	return nil
+end
+
+local function randomstring(len)
+    len = len or mrandom(8, 15)
+    local ret = ""
+    for i=1, len do
+        if mrandom(1, 2) == 1 then
+            ret = ret .. schar(mrandom(97, 122)):lower()
+        else
+            ret = ret .. schar(mrandom(97, 122)):upper()
+        end
+    end
+    return ret
+end
+
+local function instancefromtable(t)
+    local instance, parent = instancenew(t.ClassName), t.Parent
+    t.Parent, t.Name, t.ClassName = nil, t.Name or randomstring(), nil
+    for i, v in pairs(t) do
+        instance[i] = v
+    end
+    if not parent then
+        return instance
+    end
+    instance.Parent = parent
+    return instance
+end
+
+local guiname = tostring(g.PlaceId) .. "_info"
+
+local function deleteguifrom(a)
+    gp(a, guiname, "ScreenGui"):Destroy()
+end
+pcall(deleteguifrom, cg)
+pcall(deleteguifrom, pg)
+
+local gui = instancefromtable({
+    ClassName = "ScreenGui",
+    Name = guiname,
+    ResetOnSpawn = false,
+    ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+    IgnoreGuiInset = true
+})
+gui:GetPropertyChangedSignal("Parent"):Connect(function()
+	if not (gui and gui.Parent) then
+		gui = nil
+	end
+end)
+local function roundcorners(a)
+    instancenew("UICorner", a)
+end
+local mainFrame = instancefromtable({
+    ClassName = "Frame",
+    Parent = gui,
+    BackgroundColor3 = Color3.fromRGB(21, 21, 21),
+    BorderSizePixel = 0,
+    Position = UDim2.new(0, 0, 1, -200),
+    Size = UDim2.new(1, 0, 0, 200)
+})
+local mf = instancefromtable({
+    ClassName = "Frame",
+    Parent = mainFrame,
+    BackgroundColor3 = mainFrame.BackgroundColor3,
+    BorderSizePixel = 0,
+    Position = UDim2.new(0, 0, 1, 0),
+    Size = UDim2.new(1, 0, 1, 0)
+})
+local scriptName = instancefromtable({
+    ClassName = "TextLabel",
+    Parent = mainFrame,
+    BackgroundTransparency = 1,
+    Size = UDim2.new(1, 0, 0, 20),
+    Font = Enum.Font.SourceSans,
+    Text = "info script made by MyWorld",
+    TextColor3 = Color3.fromRGB(181, 181, 181),
+    TextSize = 20,
+    TextWrapped = true
+})
+local line = instancefromtable({
+    ClassName = "Frame",
+    Parent = scriptName,
+    BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+    BackgroundTransparency = 0.7,
+    BorderSizePixel = 0,
+    Position = UDim2.new(0, 5, 1, 0),
+    Size = UDim2.new(1, -10, 0, 1)
+})
+local showhide = instancefromtable({
+    ClassName = "TextButton",
+    Parent = mainFrame,
+    BackgroundColor3 = Color3.fromRGB(21, 21, 21),
+    BorderSizePixel = 0,
+    Position = UDim2.new(0.5, -25, 0, -30),
+    Size = UDim2.new(0, 50, 0, 30),
+    Font = Enum.Font.SourceSans,
+    Text = "\\/",
+    TextColor3 = Color3.fromRGB(235, 235, 235),
+    TextSize = 20
+})
+local scrollingFrame = instancefromtable({
+    ClassName = "ScrollingFrame",
+    Parent = mainFrame,
+    Active = true,
+    BackgroundTransparency = 1,
+    BorderSizePixel = 0,
+    ClipsDescendants = false,
+    Position = UDim2.new(0, 5, 0, 30),
+    Size = UDim2.new(1, -10, 1, -35),
+    CanvasSize = UDim2.new(0, 0, 0, 0),
+    ScrollBarThickness = 10,
+    AutomaticCanvasSize = Enum.AutomaticSize.X
+})
+local UIListLayout = instancefromtable({
+    ClassName = "UIListLayout",
+    Parent = scrollingFrame,
+    FillDirection = Enum.FillDirection.Horizontal,
+    SortOrder = Enum.SortOrder.LayoutOrder,
+    Padding = UDim.new(0, 10)
+})
+
+local sn = scriptName.Text
+local function notify(msg)
+	local msg1 = sn .. " - " .. msg
+	scriptName.Text = msg1
+	tdelay(3, function()
+		if scriptName.Text == msg1 then
+			scriptName.Text = sn
+		end
+	end)
+end
+
+local ancprt = nil
+local function weldtp(part, cfr)
+	if not (part and part:IsDescendantOf(ws) and part:IsA("BasePart") and (not part:IsGrounded())) then
+		return stepped:Wait()
+	end
+	if not (ancprt and ancprt:IsDescendantOf(ws) and ancprt:IsGrounded()) then
+		for i, v in pairs(ws:GetDescendants()) do
+			if v:IsA("BasePart") and v:IsGrounded() then
+				ancprt = v
+				break
+			end
+		end
+	end
+	if not ancprt then
+		return stepped:Wait()
+	end
+	local weld = instancefromtable({
+	    ClassName = "Weld",
+    	Part0 = part,
+    	C0 = cfr:Inverse(),
+    	Part1 = ancprt,
+    	C1 = ancprt.CFrame:Inverse(),
+    	Parent = ancprt
+	})
+	stepped:Wait()
+	pcall(function()
+		weld:Destroy()
+	end)
+end
+
+local function respawnRequest()
+	local ccfr = ws.CurrentCamera.CFrame
+	local c = lp.Character
+	if c then
+    	lp.Character = nil
+    	lp.Character = c
+    else
+        c = instancenew("Model")
+        lp.Character = c
+        if lp.Character == c then
+            lp.Character = nil
+        end
+	end
+	local con0, con1 = nil, nil
+	con0 = ws.CurrentCamera:GetPropertyChangedSignal("CFrame"):Connect(function()
+	    con0:Disconnect()
+	    con1:Disconnect()
+	    ws.CurrentCamera.CFrame = ccfr
+	end)
+	con1 = renderstepped:Connect(function()
+	    con0:Disconnect()
+	    con1:Disconnect()
+	end)
+end
+
+local function removehats(c)
+    c = c or lp.Character
+    if not c then return end
+    for i, v in pairs(c:GetChildren()) do
+        if v:IsA("Accessory") then
+            local handle = gp(v, "Handle", "BasePart")
+            if handle then
+                handle:Destroy()
+            end
+            v:Destroy()
+        end
+    end
+end
+
+local function makeFrame(parent, text, color)
+	local frame = instancefromtable({
+	    ClassName = "Frame",
+    	Parent = parent,
+    	BackgroundColor3 = color,
+    	Size = UDim2.new(0, 300, 0, 145),
+    	BorderSizePixel = 0
+    })
+	roundcorners(frame)
+	local framelabel = instancefromtable({
+	    ClassName = "TextLabel",
+    	Parent = frame,
+    	BackgroundTransparency = 1,
+    	Size = UDim2.new(1, 0, 0, 20),
+    	Font = Enum.Font.SourceSans,
+    	Text = text,
+    	TextColor3 = Color3.fromRGB(197, 197, 197),
+    	TextSize = 14
+	})
+	local line = instancefromtable({
+	    ClassName = "Frame",
+    	Parent = framelabel,
+    	BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+    	BackgroundTransparency = 0.7,
+    	BorderSizePixel = 0,
+    	Position = UDim2.new(0, 5, 1, 0),
+    	Size = UDim2.new(1, -10, 0, 1)
+	})
+	local ScrollingFrame = instancefromtable({
+	    ClassName = "ScrollingFrame",
+    	Parent = frame,
+    	Active = true,
+    	BackgroundTransparency = 1,
+    	BorderSizePixel = 0,
+        Position = UDim2.new(0, 5, 0, 25),
+    	Size = UDim2.new(1, -5, 1, -30),
+    	CanvasSize = UDim2.new(0, 0, 0, 0),
+    	ScrollBarThickness = 7,
+    	AutomaticCanvasSize = Enum.AutomaticSize.Y
+	})
+	local UIListLayout = instancefromtable({
+	    ClassName = "UIListLayout",
+    	Parent = ScrollingFrame,
+    	SortOrder = Enum.SortOrder.LayoutOrder,
+    	Padding = UDim.new(0, 5)
+    })
+	return frame
+end
+
+local con, hidden, Y, hidespeed = nil, false, -200, 769.69
+con = renderstepped:Connect(function(deltaTime)
+    if not gui then return con:Disconnect() end
+    if hidden then
+        Y = mclamp(Y+deltaTime*hidespeed, -200, -5)
+    else
+        Y = mclamp(Y-deltaTime*hidespeed, -200, -5)
+    end
+    mainFrame.Position = UDim2.new(0, 0, 1, Y)
+end)
+showhide.MouseButton1Click:Connect(function()
+    hidden = not hidden
+	if hidden then
+		showhide.Text = "/\\" 
+	else
+		showhide.Text = "\\/"
+	end
+end)
+
+local cbring = {}
+local controllable = {}
+local lastc = nil
+local con = nil
+con = lp.CharacterAdded:Connect(function(c)
+	if not gui then
+		con:Disconnect()
+		return
+	end
+	if c and c.Parent then
+	    if lastc == c then
+		    return
+	    end
+		lastc = c
+		controllable = {}
+		for i, v in pairs(plrs:GetPlayers()) do
+			local c = v.Character
+			if c then
+				tinsert(controllable, c)
+			end
+		end
+	end
+end)
+
+local viewedPlayer = nil
+local viewbutton = {Text = ""}
+
+local playersframe = makeFrame(scrollingFrame, "Players", Color3.fromRGB(12, 59, 100))
+local playercframe = makeFrame(playersframe, "playerscontrol", Color3.fromRGB(12, 59, 100))
+playercframe.BorderSizePixel = 1.000
+playercframe.BorderColor3 = Color3.fromRGB(27, 42, 53)
+playercframe.Position = UDim2.new(0, 10, -1, -40)
+playercframe.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+playercframe.Visible = true
+local playerframef = makeFrame(playercframe, "friends", Color3.fromRGB(0, 150, 0))
+playerframef.Position = UDim2.new(1, 10, 0, 5)
+
+local function addbtn(parent, plr)
+	local playerbutton = instancefromtable({
+	    ClassName = "TextButton",
+    	Name = plr.Name,
+    	Parent = parent,
+    	BorderSizePixel = 0,
+    	Size = UDim2.new(1, -10, 0, 20),
+    	Font = Enum.Font.SourceSans,
+    	Text = plr.Name,
+    	TextColor3 = Color3.fromRGB(0, 0, 0),
+    	TextSize = 15
+    })
+	if plr.DisplayName ~= plr.Name then
+		playerbutton.Text = playerbutton.Text .. " (" .. plr.DisplayName .. ")"
+	end
+	if plr == lp then
+		playerbutton.BackgroundColor3 = Color3.fromRGB(100, 200, 200)
+	else
+		playerbutton.BackgroundColor3 = Color3.fromRGB(136, 136, 136)
+	end
+	roundcorners(playerbutton)
+	playerbutton.MouseButton1Click:Connect(function()
+		playercframe:FindFirstChildOfClass("TextLabel").Text = "player: " .. playerbutton.Text
+		currentplayer = plr
+		playercframe.Visible = true
+		playerframef.Visible = false
+		viewbutton.Text = ((viewedPlayer == plr) and "unview") or "view"
+	end)
+end
+
+local function unview()
+	viewedPlayer = nil
+	viewbutton.Text = "view"
+	local c = lp.Character
+	if c and c.Parent then
+		local subject = c:FindFirstChildOfClass("Humanoid") or c:FindFirstChildWhichIsA("BasePart")
+		if subject then
+			ws.CurrentCamera.CameraType = Enum.CameraType.Custom
+			ws.CurrentCamera.CameraSubject = subject
+		else
+			notify("no part to view")
+		end
+	else
+		notify("character not found")
+	end
+end
+
+local playersScroll = playersframe:FindFirstChildOfClass("ScrollingFrame")
+
+for i, v in pairs(plrs:GetPlayers()) do
+	addbtn(playersScroll, v)
+end
+local reset = function() end
+local con = nil
+con = plrs.PlayerAdded:Connect(function(plr)
+	if gui then
+		addbtn(playersScroll, plr)
+		if playerframef.Visible then
+    	    tspawn(function()
+        	    if plr and plr.Parent and currentplayer:IsFriendsWith(plr.UserId) then
+        			addbtn(playerframef:FindFirstChildOfClass("ScrollingFrame"), plr)
+        	    end
+    	    end)
+    	end
+	else
+		con:Disconnect()
+	end
+end)
+local con = nil
+con = plrs.PlayerRemoving:Connect(function(plr)
+	if gui then
+		local playerbutton = gp(playersScroll, plr.Name, "TextButton")
+		if playerbutton then
+			playerbutton:Destroy()
+		end
+		if plr == currentplayer then
+			playercframe.Visible = false
+		end
+		if plr == viewedPlayer then
+			unview()
+		end
+	else
+		con:Disconnect()
+	end
+end)
+local hideplayerc = instancefromtable({
+    ClassName = "TextButton",
+    Parent = playercframe:FindFirstChildOfClass("TextLabel"),
+    BackgroundColor3 = Color3.fromRGB(59, 59, 59),
+    BorderSizePixel = 0,
+    Position = UDim2.new(1, -17, 0, 2),
+    Size = UDim2.new(0, 15, 0, 15),
+    Font = Enum.Font.SourceSans,
+    Text = "X",
+    TextColor3 = Color3.fromRGB(206, 206, 206),
+    TextSize = 14
+})
+roundcorners(hideplayerc)
+hideplayerc.MouseButton1Click:Connect(function()
+	playercframe.Visible = false
+end)
+local function makeplrbutton(buttontext)
+	local button = instancefromtable({
+	    ClassName = "TextButton",
+    	Parent = playercframe:FindFirstChildOfClass("ScrollingFrame"),
+    	BackgroundColor3 = Color3.fromRGB(53, 53, 53),
+    	BorderSizePixel = 0,
+    	Size = UDim2.new(1, -10, 0, 20),
+    	Font = Enum.Font.SourceSans,
+    	Text = buttontext,
+    	TextColor3 = Color3.fromRGB(226, 226, 226),
+    	TextSize = 15
+    })
+	roundcorners(button)
+	return button
+end
+makeplrbutton("goto").MouseButton1Click:Connect(function()
+	local c = lp.Character
+	if c and c.Parent then
+		local tp = gp(c, "HumanoidRootPart", "BasePart") or gp(c, "Head", "BasePart") or c:FindFirstChildWhichIsA("BasePart")
+		if tp then
+			local c1 = currentplayer.Character
+			if c1 and c1.Parent then
+				local to = gp(c1, "HumanoidRootPart", "BasePart") or gp(c1, "Head", "BasePart") or c1:FindFirstChildWhichIsA("BasePart")
+				if to then
+					if flycf then
+						flycf = to.CFrame
+					else
+						weldtp(tp, to.CFrame)
+					end
+					if viewedPlayer == currentplayer then
+					    unview()
+					end
+					notify("goto: " .. currentplayer.Name)
+				else
+					notify("no target part found")
+				end
+			else
+				notify("target character not found")
+			end
+		else
+			notify("no part found")
+		end
+	else
+		notify("character not found")
+	end
+end)
+viewbutton = makeplrbutton("view")
+viewbutton.MouseButton1Click:Connect(function()
+	if viewedPlayer == currentplayer then
+		unview()
+	else
+		viewedPlayer = currentplayer
+		viewbutton.Text = "unview"
+	end
+end)
+
+local cbringb = makeplrbutton("cbring")
+
+local function noanimations()
+	local c = lp.Character
+	if c then
+		local hum = c:FindFirstChildOfClass("Humanoid")
+		if hum then
+			local animate = gp(c, "Animate", "LocalScript")
+			if animate then
+				animate.Disabled = true
+			end
+			for i, v in pairs(hum:GetPlayingAnimationTracks()) do
+				v:Stop()
+			end
+		else
+			notify("humanoid not found")
+		end
+	else
+		notify("character not found")
+	end
+end
+
+local isConnected = nil
+isConnected = function(part0, part1, tested)
+	if not ((typeof(part0) == "Instance") and part0:IsA("BasePart")) then
+		return false
+	end
+	if not ((typeof(part1) == "Instance") and part1:IsA("BasePart")) then
+		return false
+	end
+	if not tested then
+		tested = {}
+	end
+	local ret = false
+	tinsert(tested, part0)
+	for i, v in pairs(part0:GetConnectedParts()) do
+		if part1 == v then
+			return true
+		elseif not tfind(tested, v) then
+			ret = ret or isConnected(v, part1, tested)
+		end
+	end
+	return ret
+end
+
+local function attach(c1)
+	local bck = lp:FindFirstChildOfClass("Backpack")
+	local c = lp.Character
+	--checks for: model, humanoid, arm, torso for main character:
+	if not (c and c.Parent) then
+		notify("character not found")
+		return false
+	end
+	local hum = c:FindFirstChildOfClass("Humanoid")
+	if not hum then
+		notify("humanoid not found")
+		return false
+	end 
+	local arm = gp(c, "Right Arm", "BasePart") or gp(c, "RightHand", "BasePart")
+	if not arm then
+		notify("arm not found")
+		return false
+	end
+	local torso = gp(c, "Torso", "BasePart") or gp(c, "UpperTorso", "BasePart")
+	if not torso then
+		notify("torso not found")
+		return
+	end
+	if torso:IsGrounded() then
+		notify("torso is grounded")
+		return
+	end
+	if not isConnected(arm, torso) then
+		notify("arm and toso not connected")
+		return
+	end
+	--checks for: tool:
+	local tool, handle = nil, nil
+	for i, v in pairs(c:GetChildren()) do
+	    if v:IsA("Tool") then
+	        handle = gp(v, "Handle", "BasePart") 
+	        if handle then 
+	            tool = v
+	            break
+	        end
+	    end
+	end
+	if (not tool) and bck then 
+        for i, v in pairs(bck:GetChildren()) do
+    	    if v:IsA("Tool") then
+    	        handle = gp(v, "Handle", "BasePart") 
+    	        if handle then 
+    	            tool = v
+    	            break
+    	        end
+    	    end
+        end
+	end
+	if not tool then
+	    notify("no tools with handle found")
+	    return false
+	end
+	--checks for: model, humanoid, arm, torso for target character:
+	if not (c1 and c1.Parent) then
+		notify("target character not found")
+		return false
+	end
+	local hum1 = c1:FindFirstChildOfClass("Humanoid")
+	if not hum1 then
+		notify("target humanoid not found")
+		return false
+	end
+	local arm1 = gp(c1, "Right Arm", "BasePart") or gp(c1, "RightHand", "BasePart")
+	if not arm1 then
+		notify("target arm not found")
+		return false
+	end
+	local torso1 = gp(c1, "Torso", "BasePart") or gp(c1, "UpperTorso", "BasePart")
+	if not torso1 then
+		notify("target torso not found")
+		return
+	end
+	if torso1:IsGrounded() then
+		notify("target torso is grounded")
+		return
+	end
+	if not isConnected(arm1, torso1) then
+		notify("target arm and toso not connected")
+		return
+	end
+	--all checks good
+	if bck then
+		for i, v in pairs(c:GetChildren()) do
+			if v:IsA("Tool") then
+				v.Parent = bck
+			end
+		end
+	end
+	removehats(c)
+	local nhum = hum:Clone()
+	hum:Destroy()
+	hum = nhum
+	hum.Parent = c
+	hum:EquipTool(tool)
+	for i, v in pairs(c1:GetDescendants()) do
+		if v and v:IsA("BasePart") then
+			v.CustomPhysicalProperties = PhysicalProperties.new(0,0,0,0,0)
+		end
+	end
+	for i, v in pairs(tool:GetDescendants()) do
+	    if v ~= handle and not v:IsA("TouchTransmitter") then
+	        v:Destroy()
+	    end
+	end
+	handle.Massless = true
+	local attaching = true
+	tspawn(function()
+		while renderstepped:Wait() and attaching do
+			--checks for: model, humanoid, arm, torso for main character:
+			if not (c and c.Parent) then
+				handle = nil
+				tool.Parent = bck
+				return notify("character removed")
+			end
+			if (not hum and hum.Parent) then
+				handle = nil
+				tool.Parent = bck
+				return notify("humanoid removed")
+			end
+			if not (arm and arm.Parent) then
+				handle = nil
+				tool.Parent = bck
+				return notify("arm removed")
+			end
+			if not (torso and torso.Parent) then
+				handle = nil
+				tool.Parent = bck
+				return notify("torso removed")
+			end
+			if torso:IsGrounded() then
+				handle = nil
+				tool.Parent = bck
+				return notify("torso got grounded")
+			end
+			if not isConnected(arm, torso) then
+				handle = nil
+				tool.Parent = bck
+				return notify("arm and toso connection removed")
+			end
+			--checks for: model, humanoid, arm, torso for target character:
+			if not (c1 and c1.Parent) then
+				handle = nil
+				tool.Parent = bck
+				return notify("target character removed")
+			end
+			if not (hum1 and hum1.Parent) then
+				handle = nil
+				tool.Parent = bck
+				return notify("target humanoid removed")
+			end
+			if not (arm1 and arm1.Parent) then
+				handle = nil
+				tool.Parent = bck
+				return notify("target arm removed")
+			end
+			if not (torso1 and torso1.Parent) then
+				handle = nil
+				tool.Parent = bck
+				return notify("target torso removed")
+			end
+			if torso:IsGrounded() then
+				handle = nil
+				tool.Parent = bck
+				return notify("target torso got grounded")
+			end
+			if not isConnected(arm1, torso1) then
+				handle = nil
+				tool.Parent = bck
+				return notify("target arm and toso connection removed")
+			end
+			--checks for: tool
+			if not (tool and tool.Parent) then
+				handle = nil
+				tool.Parent = bck
+				return notify("tool removed")
+			end
+			if not (handle and handle.Parent) then
+				handle = nil
+				tool.Parent = bck
+				return notify("tool handle removed")
+			end
+			if (tool.Parent ~= c) and (tool.Parent ~= c1) and (tool.Parent ~= bck) then
+				handle = nil
+				tool.Parent = bck
+				return notify("unexpected tool parent")
+			end
+			weldtp(arm1, handle.CFrame)
+		end
+	end)
+	while tool do
+		tool.AncestryChanged:Wait()
+		attaching = false
+		break
+	end
+	if hum1 and hum1.Parent then
+		hum1.PlatformStand = true
+	else
+	    notify("target humanoid removed after attached")
+	end
+	return handle
+end
+
+makeplrbutton("bring").MouseButton1Click:Connect(function()
+	local plr = currentplayer
+	local c1 = plr.Character
+	if not (c1 and c1.Parent) then
+		notify("target character not found")
+		return
+	end
+	if not tfind(controllable, c1) then
+		reset(true)
+		
